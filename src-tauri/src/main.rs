@@ -3,13 +3,16 @@
   windows_subsystem = "windows"
 )]
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, serde::Serialize, ts_rs::TS)]
+#[ts(export)]
 struct Payload {
   message: String,
 }
 
+use std::sync::mpsc;
 use pipewire::{MainLoop, Context};
 use tauri::Manager;
+
 fn main() {
   let (tauri_to_pw_sender, tauri_to_pw_receiver) = pipewire::channel::channel::<()>();
   tauri::Builder::default()
@@ -23,6 +26,10 @@ fn main() {
 }
 
 fn pw_thread_main(app: tauri::AppHandle, tauri_to_pw_receiver: pipewire::channel::Receiver<()>) {
+  let (frontend_ready_send, frontend_ready_recv) = mpsc::channel::<()>();
+  app.once_global("frontend_ready", move |_event| { frontend_ready_send.send(()).unwrap(); });
+  frontend_ready_recv.recv().expect("failed to receive frontend_ready event");
+
   let mainloop = MainLoop::new().expect("Failed to create mainloop");
   let context = Context::new(&mainloop).expect("Failed to create context");
   let core = context.connect(None).expect("Failed to connect to remote");
@@ -34,5 +41,6 @@ fn pw_thread_main(app: tauri::AppHandle, tauri_to_pw_receiver: pipewire::channel
       app.emit_all("pipewire_global", Payload { message: format!("{:?}", global).into() }).unwrap();
     })
     .register();
+
   mainloop.run();
 }

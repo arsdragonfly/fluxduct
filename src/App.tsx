@@ -2,14 +2,17 @@ import React, { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { emit, listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api';
 import util from 'util';
+import { Payload } from '../src-tauri/bindings/Payload'
 
 function App() {
-  const [str, setStr] = useState("");
+  const [messages, setMessages] = useState<string[]>([]);
   useEffect(() => {
-    const unlisten = listen('pipewire_global', event => {
-      setStr(util.inspect(event.payload));
+    const unlisten = listen<Payload>('pipewire_global', event => {
+      setMessages(msgs => msgs.concat([event.payload.message]))
     })
+    emit('frontend_ready', {})
     return () => {
       unlisten.then(f => f())
     }
@@ -18,7 +21,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <p>{str}</p>
+        {messages.map(m => <p>{m}</p>)}
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
         </p>
