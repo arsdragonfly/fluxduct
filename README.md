@@ -1,6 +1,6 @@
 # WIP
 
-Fluxduct is the best pipewire patchbay.
+Fluxduct aims to be the best pipewire patchbay.
 
 ## Build
 ```
