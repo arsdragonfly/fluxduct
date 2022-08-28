@@ -49,7 +49,6 @@ fn main() {
 fn pw_thread_main(app: tauri::AppHandle, tauri_to_pw_receiver: pipewire::channel::Receiver<()>) {
   let (frontend_ready_send, frontend_ready_recv) = mpsc::channel::<()>();
   app.once_global("frontend_ready", move |_event| { frontend_ready_send.send(()).unwrap(); });
-  frontend_ready_recv.recv().expect("failed to receive frontend_ready event");
 
   let mainloop = MainLoop::new().expect("Failed to create mainloop");
   let context = Context::new(&mainloop).expect("Failed to create context");
@@ -77,6 +76,7 @@ fn pw_thread_main(app: tauri::AppHandle, tauri_to_pw_receiver: pipewire::channel
     })
     .register();
 
+  frontend_ready_recv.recv().expect("failed to receive frontend_ready event");
   mainloop.run();
 }
 

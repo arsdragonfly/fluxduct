@@ -21,23 +21,32 @@
  * SPDX-License-Identifier: MIT
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
-import { emit, listen } from '@tauri-apps/api/event'
-import { invoke } from '@tauri-apps/api';
-import util from 'util';
-import { Payload } from '../src-tauri/bindings/Payload'
+import { emit, listen } from '@tauri-apps/api/event';
+import { Payload } from '../src-tauri/bindings/Payload';
 
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
   useEffect(() => {
+    let isSubscribed = true;
+    setMessages([]);
     const unlisten = listen<Payload>('pipewire_global', event => {
-      setMessages(msgs => msgs.concat([event.payload.message]))
-    })
-    emit('frontend_ready', {})
+      if (isSubscribed) {
+        setMessages(msgs => msgs.concat([event.payload.message]))
+      }
+    });
+    (async () => {
+
+      await unlisten; 
+      emit('frontend_ready', {})
+    })()
     return () => {
-      unlisten.then(f => f())
+      isSubscribed = false;
+      unlisten.then(f => { 
+        return f()
+      })
     }
   }, [])
   return (
