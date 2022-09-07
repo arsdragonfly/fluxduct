@@ -25,26 +25,33 @@ import { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { emit, listen } from '@tauri-apps/api/event';
-import { Payload } from '../src-tauri/bindings/Payload';
+// import { MessagePayload } from '../src-tauri/bindings/MessagePayload';
+import { NodePayload } from '../src-tauri/bindings/NodePayload';
+import util from 'util';
 
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
   useEffect(() => {
     let isSubscribed = true;
     setMessages([]);
-    const unlisten = listen<Payload>('pipewire_global', event => {
+    // const unlisten = listen<MessagePayload>('pipewire_global', event => {
+    //   if (isSubscribed) {
+    //     setMessages(msgs => msgs.concat([event.payload.message]))
+    //   }
+    // });
+    const unlistenAddNode = listen<NodePayload>('add_node', event => {
       if (isSubscribed) {
-        setMessages(msgs => msgs.concat([event.payload.message]))
+        setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
       }
     });
     (async () => {
 
-      await unlisten; 
+      await unlistenAddNode; 
       emit('frontend_ready', {})
     })()
     return () => {
       isSubscribed = false;
-      unlisten.then(f => { 
+      unlistenAddNode.then(f => { 
         return f()
       })
     }
