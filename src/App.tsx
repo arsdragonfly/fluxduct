@@ -25,8 +25,10 @@ import { useEffect, useState } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { emit, listen } from '@tauri-apps/api/event';
-// import { MessagePayload } from '../src-tauri/bindings/MessagePayload';
+import { MessagePayload } from '../src-tauri/bindings/MessagePayload';
 import { NodePayload } from '../src-tauri/bindings/NodePayload';
+import { LinkPayload } from '../src-tauri/bindings/LinkPayload';
+import { PortPayload } from '../src-tauri/bindings/PortPayload';
 import util from 'util';
 
 function App() {
@@ -34,24 +36,42 @@ function App() {
   useEffect(() => {
     let isSubscribed = true;
     setMessages([]);
-    // const unlisten = listen<MessagePayload>('pipewire_global', event => {
-    //   if (isSubscribed) {
-    //     setMessages(msgs => msgs.concat([event.payload.message]))
-    //   }
-    // });
+    const unlistenMessage = listen<MessagePayload>('pipewire_global', event => {
+      if (isSubscribed) {
+        setMessages(msgs => msgs.concat([event.payload.message]))
+      }
+    });
     const unlistenAddNode = listen<NodePayload>('add_node', event => {
       if (isSubscribed) {
         setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
       }
     });
+    const unlistenAddLink = listen<LinkPayload>('add_link', event => {
+      if (isSubscribed) {
+        setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
+      }
+    });
+    const unlistenAddPort = listen<PortPayload>('add_port', event => {
+      if (isSubscribed) {
+        setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
+      }
+    });
     (async () => {
-
+      await unlistenMessage;
       await unlistenAddNode; 
+      await unlistenAddLink;
+      await unlistenAddPort;
       emit('frontend_ready', {})
     })()
     return () => {
       isSubscribed = false;
+      unlistenMessage.then(f => {
+        return f()
+      })
       unlistenAddNode.then(f => { 
+        return f()
+      })
+      unlistenAddLink.then(f => {
         return f()
       })
     }

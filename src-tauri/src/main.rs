@@ -39,13 +39,75 @@ struct NodePayload {
     description: Option<String>,
 }
 
+#[derive(Clone, serde::Serialize, ts_rs::TS)]
+#[ts(export)]
+struct LinkPayload {
+    id: u32,
+    input_port_id: u32,
+    output_port_id: u32,
+}
+
+#[derive(Clone, serde::Serialize, ts_rs::TS)]
+#[ts(export)]
+struct PortPayload {
+    id: u32,
+    node_id: u32,
+    secondary_id: u32, // port.id in the ForeignDict, decides ordering within a node's input/output side
+    format_dsp: Option<String>,
+    audio_channel: Option<String>,
+    name: Option<String>,
+    direction: Option<String>,
+}
+
 fn node_payload(node: &GlobalObject<ForeignDict>) -> NodePayload {
     let node_props = node.props.as_ref().expect("Node has no properties");
     NodePayload {
-      id: node.id,
-      nick: node_props.get("node.nick").map(|x| x.to_string()),
-      name: node_props.get("node.name").map(|x| x.to_string()),
-      description: node_props.get("node.description").map(|x| x.to_string())
+        id: node.id,
+        nick: node_props.get("node.nick").map(|x| x.to_string()),
+        name: node_props.get("node.name").map(|x| x.to_string()),
+        description: node_props.get("node.description").map(|x| x.to_string()),
+    }
+}
+
+fn link_payload(link: &GlobalObject<ForeignDict>) -> LinkPayload {
+    let link_props = link.props.as_ref().expect("Link has no properties");
+    LinkPayload {
+        id: link.id,
+        input_port_id: link_props
+            .get("link.input.port")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
+        output_port_id: link_props
+            .get("link.input.port")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
+    }
+}
+
+fn port_payload(port: &GlobalObject<ForeignDict>) -> PortPayload {
+    let port_props = port.props.as_ref().expect("Port has no properties");
+    PortPayload {
+        id: port.id,
+        node_id: port_props
+            .get("node.id")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
+        secondary_id: port_props
+            .get("port.id")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
+        format_dsp: port_props.get("format.dsp").map(|x| x.to_string()),
+        audio_channel: port_props.get("audio.channel").map(|x| x.to_string()),
+        name: port_props.get("port.name").map(|x| x.to_string()),
+        direction: port_props.get("port.direction").map(|x| x.to_string()),
     }
 }
 
@@ -56,6 +118,18 @@ trait Payload: serde::Serialize + Clone {
 impl Payload for NodePayload {
     fn type_name(&self) -> String {
         "node".to_owned()
+    }
+}
+
+impl Payload for LinkPayload {
+    fn type_name(&self) -> String {
+        "link".to_owned()
+    }
+}
+
+impl Payload for PortPayload {
+    fn type_name(&self) -> String {
+        "port".to_owned()
     }
 }
 
@@ -88,29 +162,27 @@ impl<T: Payload> TauriEvent for AddEvent<T> {
 }
 
 use pipewire::{
-    node::Node,
     registry::GlobalObject,
     spa::{ForeignDict, ReadableDict},
     types::ObjectType,
     Context, MainLoop,
 };
-use std::{sync::mpsc, ops::Add};
+use std::sync::mpsc;
 use tauri::Manager;
 
 fn main() {
-    let (tauri_to_pw_sender, tauri_to_pw_receiver) = pipewire::channel::channel::<()>();
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle();
-            let pw_thread =
-                std::thread::spawn(move || pw_thread_main(handle, tauri_to_pw_receiver));
+            let _pw_thread =
+                std::thread::spawn(move || pw_thread_main(handle));
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-fn pw_thread_main(app: tauri::AppHandle, tauri_to_pw_receiver: pipewire::channel::Receiver<()>) {
+fn pw_thread_main(app: tauri::AppHandle) {
     let (frontend_ready_send, frontend_ready_recv) = mpsc::channel::<()>();
     app.once_global("frontend_ready", move |_event| {
         frontend_ready_send.send(()).unwrap();
@@ -124,19 +196,23 @@ fn pw_thread_main(app: tauri::AppHandle, tauri_to_pw_receiver: pipewire::channel
         .add_listener_local()
         .global(move |global| {
             println!("New global : {:?}", global);
-            app.emit_all(
-                "pipewire_global",
-                MessagePayload {
-                    message: format!("{:?}", global).into(),
-                },
-            )
-            .unwrap();
+            // app.emit_all(
+            //     "pipewire_global",
+            //     MessagePayload {
+            //         message: format!("{:?}", global).into(),
+            //     },
+            // )
+            // .unwrap();
             match global.type_ {
                 ObjectType::Node => {
-                  handle_node(global, &app);
+                    handle_node(global, &app);
                 }
-                ObjectType::Port => {}
-                ObjectType::Link => {}
+                ObjectType::Port => {
+                    handle_port(global, &app);
+                }
+                ObjectType::Link => {
+                    handle_link(global, &app);
+                }
                 _ => {}
             }
         })
@@ -149,8 +225,22 @@ fn pw_thread_main(app: tauri::AppHandle, tauri_to_pw_receiver: pipewire::channel
 }
 
 fn handle_node(node: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
-  let add_event = AddEvent {
-    payload: node_payload(node)
-  };
-  add_event.emit_all(app).unwrap()
+    let add_event = AddEvent {
+        payload: node_payload(node),
+    };
+    add_event.emit_all(app).unwrap()
+}
+
+fn handle_link(link: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
+    let add_event = AddEvent {
+        payload: link_payload(link),
+    };
+    add_event.emit_all(app).unwrap()
+}
+
+fn handle_port(port: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
+    let add_event = AddEvent {
+        payload: port_payload(port),
+    };
+    add_event.emit_all(app).unwrap()
 }
