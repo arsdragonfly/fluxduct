@@ -146,6 +146,21 @@ trait TauriEvent {
     }
 }
 
+struct DebugMessageEvent {
+    payload: MessagePayload,
+}
+
+impl TauriEvent for DebugMessageEvent {
+    type Payload = MessagePayload;
+    fn event_name(&self) -> String {
+        "debug_message".to_owned()
+    }
+
+    fn event_payload(&self) -> Self::Payload {
+        self.payload.clone()
+    }
+}
+
 struct AddEvent<T> {
     payload: T,
 }
@@ -174,8 +189,7 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle();
-            let _pw_thread =
-                std::thread::spawn(move || pw_thread_main(handle));
+            let _pw_thread = std::thread::spawn(move || pw_thread_main(handle));
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -196,13 +210,7 @@ fn pw_thread_main(app: tauri::AppHandle) {
         .add_listener_local()
         .global(move |global| {
             println!("New global : {:?}", global);
-            // app.emit_all(
-            //     "pipewire_global",
-            //     MessagePayload {
-            //         message: format!("{:?}", global).into(),
-            //     },
-            // )
-            // .unwrap();
+            send_object_debug_message(global, &app);
             match global.type_ {
                 ObjectType::Node => {
                     handle_node(global, &app);
@@ -222,6 +230,15 @@ fn pw_thread_main(app: tauri::AppHandle) {
         .recv()
         .expect("failed to receive frontend_ready event");
     mainloop.run();
+}
+
+fn send_object_debug_message(global: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
+    let debug_message_event = DebugMessageEvent {
+        payload: MessagePayload {
+            message: format!("New global : {:?}", global),
+        },
+    };
+    debug_message_event.emit_all(app).unwrap()
 }
 
 fn handle_node(node: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {

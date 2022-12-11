@@ -36,9 +36,9 @@ function App() {
   useEffect(() => {
     let isSubscribed = true;
     setMessages([]);
-    const unlistenMessage = listen<MessagePayload>('pipewire_global', event => {
+    const unlistenDebugMessage = listen<MessagePayload>('debug_message', event => {
       if (isSubscribed) {
-        setMessages(msgs => msgs.concat([event.payload.message]))
+        setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
       }
     });
     const unlistenAddNode = listen<NodePayload>('add_node', event => {
@@ -57,7 +57,7 @@ function App() {
       }
     });
     (async () => {
-      await unlistenMessage;
+      await unlistenDebugMessage;
       await unlistenAddNode; 
       await unlistenAddLink;
       await unlistenAddPort;
@@ -65,13 +65,16 @@ function App() {
     })()
     return () => {
       isSubscribed = false;
-      unlistenMessage.then(f => {
+      unlistenDebugMessage.then(f => {
         return f()
       })
       unlistenAddNode.then(f => { 
         return f()
       })
       unlistenAddLink.then(f => {
+        return f()
+      })
+      unlistenAddPort.then(f => {
         return f()
       })
     }
