@@ -22,7 +22,6 @@
  */
 
 import { useEffect, useState } from 'react';
-import logo from './logo.svg';
 import './App.css';
 import { emit, listen } from '@tauri-apps/api/event';
 import { MessagePayload } from '../src-tauri/bindings/MessagePayload';
@@ -30,6 +29,7 @@ import { NodePayload } from '../src-tauri/bindings/NodePayload';
 import { LinkPayload } from '../src-tauri/bindings/LinkPayload';
 import { PortPayload } from '../src-tauri/bindings/PortPayload';
 import util from 'util';
+import { ForceGraph2D } from 'react-force-graph';
 
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
@@ -81,21 +81,23 @@ function App() {
   }, [])
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        {messages.map(m => <p>{m}</p>)}
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <ForceGraph2D graphData={({
+        nodes: [
+          {
+            id: "1",
+          },
+          {
+            id: "2",
+          }
+        ],
+        links: [
+          {
+            source: "1",
+            target: "2"
+          }
+        ]
+        })} />
+      {messages.map(m => <p>{m}</p>)}
     </div>
   );
 }

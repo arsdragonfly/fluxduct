@@ -34,6 +34,7 @@ struct MessagePayload {
 #[ts(export)]
 struct NodePayload {
     id: u32,
+    serial: u32,
     nick: Option<String>,
     name: Option<String>,
     description: Option<String>,
@@ -43,14 +44,18 @@ struct NodePayload {
 #[ts(export)]
 struct LinkPayload {
     id: u32,
+    serial: u32,
     input_port_id: u32,
     output_port_id: u32,
+    input_node_id: u32,
+    output_node_id: u32,
 }
 
 #[derive(Clone, serde::Serialize, ts_rs::TS)]
 #[ts(export)]
 struct PortPayload {
     id: u32,
+    serial: u32,
     node_id: u32,
     secondary_id: u32, // port.id in the ForeignDict, decides ordering within a node's input/output side
     format_dsp: Option<String>,
@@ -63,6 +68,12 @@ fn node_payload(node: &GlobalObject<ForeignDict>) -> NodePayload {
     let node_props = node.props.as_ref().expect("Node has no properties");
     NodePayload {
         id: node.id,
+        serial: node_props
+            .get("object.serial")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
         nick: node_props.get("node.nick").map(|x| x.to_string()),
         name: node_props.get("node.name").map(|x| x.to_string()),
         description: node_props.get("node.description").map(|x| x.to_string()),
@@ -73,6 +84,12 @@ fn link_payload(link: &GlobalObject<ForeignDict>) -> LinkPayload {
     let link_props = link.props.as_ref().expect("Link has no properties");
     LinkPayload {
         id: link.id,
+        serial: link_props
+            .get("object.serial")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
         input_port_id: link_props
             .get("link.input.port")
             .map(|x| x.parse::<u32>())
@@ -85,6 +102,18 @@ fn link_payload(link: &GlobalObject<ForeignDict>) -> LinkPayload {
             .transpose()
             .unwrap()
             .unwrap(),
+        input_node_id: link_props
+            .get("link.input.node")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
+        output_node_id: link_props
+            .get("link.output.node")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
     }
 }
 
@@ -92,6 +121,12 @@ fn port_payload(port: &GlobalObject<ForeignDict>) -> PortPayload {
     let port_props = port.props.as_ref().expect("Port has no properties");
     PortPayload {
         id: port.id,
+        serial: port_props
+            .get("object.serial")
+            .map(|x| x.parse::<u32>())
+            .transpose()
+            .unwrap()
+            .unwrap(),
         node_id: port_props
             .get("node.id")
             .map(|x| x.parse::<u32>())
