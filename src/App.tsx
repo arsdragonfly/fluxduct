@@ -30,6 +30,7 @@ import { LinkPayload } from '../src-tauri/bindings/LinkPayload';
 import { PortPayload } from '../src-tauri/bindings/PortPayload';
 import util from 'util';
 import { ForceGraph2D } from 'react-force-graph';
+import { useGetPipewireStateQuery } from './pipewireApi';
 
 function App() {
   const [messages, setMessages] = useState<string[]>([]);
@@ -58,7 +59,7 @@ function App() {
     });
     (async () => {
       await unlistenDebugMessage;
-      await unlistenAddNode; 
+      await unlistenAddNode;
       await unlistenAddLink;
       await unlistenAddPort;
       emit('frontend_ready', {})
@@ -68,7 +69,7 @@ function App() {
       unlistenDebugMessage.then(f => {
         return f()
       })
-      unlistenAddNode.then(f => { 
+      unlistenAddNode.then(f => {
         return f()
       })
       unlistenAddLink.then(f => {
@@ -79,6 +80,7 @@ function App() {
       })
     }
   }, [])
+  const { data, error, isLoading } = useGetPipewireStateQuery();
   return (
     <div className="App">
       <ForceGraph2D graphData={({
@@ -96,7 +98,7 @@ function App() {
             target: "2"
           }
         ]
-        })} />
+      })} />
       {messages.map(m => <p>{m}</p>)}
     </div>
   );
