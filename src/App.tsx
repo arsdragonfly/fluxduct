@@ -33,56 +33,10 @@ import { ForceGraph2D } from 'react-force-graph';
 import { useGetPipewireStateQuery } from './pipewireApi';
 
 function App() {
-  const [messages, setMessages] = useState<string[]>([]);
-  useEffect(() => {
-    let isSubscribed = true;
-    setMessages([]);
-    const unlistenDebugMessage = listen<MessagePayload>('debug_message', event => {
-      if (isSubscribed) {
-        setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
-      }
-    });
-    const unlistenAddNode = listen<NodePayload>('add_node', event => {
-      if (isSubscribed) {
-        setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
-      }
-    });
-    const unlistenAddLink = listen<LinkPayload>('add_link', event => {
-      if (isSubscribed) {
-        setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
-      }
-    });
-    const unlistenAddPort = listen<PortPayload>('add_port', event => {
-      if (isSubscribed) {
-        setMessages(msgs => msgs.concat([util.inspect(event.payload)]))
-      }
-    });
-    (async () => {
-      await unlistenDebugMessage;
-      await unlistenAddNode;
-      await unlistenAddLink;
-      await unlistenAddPort;
-      emit('frontend_ready', {})
-    })()
-    return () => {
-      isSubscribed = false;
-      unlistenDebugMessage.then(f => {
-        return f()
-      })
-      unlistenAddNode.then(f => {
-        return f()
-      })
-      unlistenAddLink.then(f => {
-        return f()
-      })
-      unlistenAddPort.then(f => {
-        return f()
-      })
-    }
-  }, [])
   const { data, error, isLoading } = useGetPipewireStateQuery();
   return (
     <div className="App">
+      {(isLoading || error) ? <p>Loading...</p> : <p>{util.inspect(data)}</p>}
       <ForceGraph2D graphData={({
         nodes: [
           {
@@ -99,7 +53,6 @@ function App() {
           }
         ]
       })} />
-      {messages.map(m => <p>{m}</p>)}
     </div>
   );
 }

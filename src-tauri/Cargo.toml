@@ -19,7 +19,7 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 ts-rs = "6.2.1"
 tauri = { version = "1.2.2", features = ["api-all"] }
-pipewire = "0.5.0"
+pipewire = { path = "/home/arsdragonfly/pipewire-rs/pipewire" }
 
 [features]
 # by default Tauri runs in production mode
