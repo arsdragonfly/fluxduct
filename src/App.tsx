@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import { emit, listen } from '@tauri-apps/api/event';
 import { MessagePayload } from '../src-tauri/bindings/MessagePayload';
@@ -30,31 +30,60 @@ import { LinkPayload } from '../src-tauri/bindings/LinkPayload';
 import { PortPayload } from '../src-tauri/bindings/PortPayload';
 import util from 'util';
 import { ForceGraph2D } from 'react-force-graph';
-import { useGetPipewireStateQuery } from './pipewireApi';
+import { PipewireState, useGetPipewireStateQuery } from './pipewireApi';
 
 function App() {
   const { data, error, isLoading } = useGetPipewireStateQuery();
+  const nodes = useMemo(() => data ? getGraphNodesFromPipewireState(data) : [], [data]);
+  const links = useMemo(() => data ? getGraphLinksFromPipewireState(data) : [], [data]);
   return (
     <div className="App">
-      {(isLoading || error) ? <p>Loading...</p> : <p>{util.inspect(data)}</p>}
+      {(isLoading || error) ? <p>Loading...</p> : (data?.debugMessages.map(message => <p>{message}</p>))}
       <ForceGraph2D graphData={({
-        nodes: [
-          {
-            id: "1",
-          },
-          {
-            id: "2",
-          }
-        ],
-        links: [
-          {
-            source: "1",
-            target: "2"
-          }
-        ]
+        nodes,
+        links
       })} />
     </div>
   );
+}
+
+type ArrayElement<ArrayType extends readonly unknown[]> = 
+  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+
+type NodeObject = ArrayElement<NonNullable<React.ComponentProps<typeof ForceGraph2D>['graphData']>['nodes']>;
+type LinkObject = ArrayElement<NonNullable<React.ComponentProps<typeof ForceGraph2D>['graphData']>['links']>;
+
+function getGraphNodesFromPipewireState(state: PipewireState): NodeObject[] {
+  // every pipewire node and pipewire port corresponds to a graph node
+  const nodes = state.nodes.map(node => ({
+    id: `node-${node.id}`,
+    name: node.name,
+  }));
+  const ports = state.ports.map(port => ({
+    id: `port-${port.id}`,
+    name: port.name,
+  }));
+  return [...nodes, ...ports];
+}
+
+function getGraphLinksFromPipewireState(state: PipewireState): LinkObject[] {
+  // every port has a link to its node
+  const portsToNodes = state.ports.filter(port => port.direction === "in")
+  .map(port => ({
+    source: `port-${port.id}`,
+    target: `node-${port.node_id}`,
+  }))
+  const nodesToPorts = state.ports.filter(port => port.direction === "out")
+  .map(port => ({
+    source: `node-${port.node_id}`,
+    target: `port-${port.id}`,
+  }))
+  // every pipewire link corresponds to a graph link
+  const links = state.links.map(link => ({
+    source: `port-${link.output_port_id}`,
+    target: `port-${link.input_port_id}`,
+  }));
+  return [...portsToNodes, ...nodesToPorts, ...links];
 }
 
 export default App;

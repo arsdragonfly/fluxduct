@@ -97,7 +97,7 @@ fn link_payload(link: &GlobalObject<ForeignDict>) -> LinkPayload {
             .unwrap()
             .unwrap(),
         output_port_id: link_props
-            .get("link.input.port")
+            .get("link.output.port")
             .map(|x| x.parse::<u32>())
             .transpose()
             .unwrap()
@@ -212,58 +212,65 @@ impl<T: Payload> TauriEvent for AddEvent<T> {
 }
 
 use pipewire::{
-    registry::GlobalObject,
+    registry::{GlobalObject, Registry, Listener},
     spa::{ForeignDict, ReadableDict},
+    sys::pw_main_loop_get_loop,
     types::ObjectType,
-    Context, MainLoop,
+    Context, Loop, MainLoop, MainLoopInner,
 };
-use std::sync::mpsc;
+use std::{sync::{mpsc, Arc}, cell::RefCell};
 use tauri::Manager;
 
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle();
-            let _pw_thread = std::thread::spawn(move || pw_thread_main(handle));
+            let _pw_thread = std::thread::spawn(move || pw_thread_main(Arc::new(handle)));
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-fn pw_thread_main(app: tauri::AppHandle) {
+fn pw_thread_main(app: Arc<tauri::AppHandle>) {
     let (frontend_ready_send, frontend_ready_recv) = mpsc::channel::<()>();
     app.once_global("frontend_ready", move |_event| {
         frontend_ready_send.send(()).unwrap();
     });
 
+    let listeners: RefCell<Vec<Box<Listener>>> = RefCell::new(Vec::new());
+
     let mainloop = MainLoop::new().expect("Failed to create mainloop");
     let context = Context::new(&mainloop).expect("Failed to create context");
     let core = context.connect(None).expect("Failed to connect to remote");
     let registry = core.get_registry().expect("Failed to get registry");
-    let _listener = registry
-        .add_listener_local()
-        .global(move |global| {
-            println!("New global : {:?}", global);
-            send_object_debug_message(global, &app);
-            match global.type_ {
-                ObjectType::Node => {
-                    handle_node(global, &app);
-                }
-                ObjectType::Port => {
-                    handle_port(global, &app);
-                }
-                ObjectType::Link => {
-                    handle_link(global, &app);
-                }
-                _ => {}
+    let event_source = mainloop.add_event(move || {
+            let app = app.clone();
+            if let Ok(_) = frontend_ready_recv.recv() {
+                let listener = Box::new(registry
+                    .add_listener_local()
+                    .global(move |global| {
+                        println!("New global : {:?}", global);
+                        send_object_debug_message(global, &app);
+                        match global.type_ {
+                            ObjectType::Node => {
+                                handle_node(global, &app);
+                            }
+                            ObjectType::Port => {
+                                handle_port(global, &app);
+                            }
+                            ObjectType::Link => {
+                                handle_link(global, &app);
+                            }
+                            _ => {}
+                        }
+                    })
+                    .register());
+                listeners.borrow_mut().push(listener);
+                println!("listener registered");
             }
-        })
-        .register();
-
-    frontend_ready_recv
-        .recv()
-        .expect("failed to receive frontend_ready event");
+        });
+    event_source.signal();
     mainloop.run();
 }
 
