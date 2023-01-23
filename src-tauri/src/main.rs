@@ -212,13 +212,19 @@ impl<T: Payload> TauriEvent for AddEvent<T> {
 }
 
 use pipewire::{
-    registry::{GlobalObject, Registry, Listener},
+    registry::{GlobalObject, Listener, Registry},
     spa::{ForeignDict, ReadableDict},
     sys::pw_main_loop_get_loop,
     types::ObjectType,
     Context, Loop, MainLoop, MainLoopInner,
 };
-use std::{sync::{mpsc, Arc}, cell::RefCell};
+use std::{
+    borrow::Borrow,
+    cell::RefCell,
+    ops::Deref,
+    rc::Rc,
+    sync::{mpsc, Arc},
+};
 use tauri::Manager;
 
 fn main() {
@@ -226,6 +232,7 @@ fn main() {
         .setup(|app| {
             let handle = app.handle();
             let _pw_thread = std::thread::spawn(move || pw_thread_main(Arc::new(handle)));
+            // let _pw_thread = std::thread::spawn(move || pw_thread_main_broken(Arc::new(handle)));
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -234,20 +241,84 @@ fn main() {
 
 fn pw_thread_main(app: Arc<tauri::AppHandle>) {
     let (frontend_ready_send, frontend_ready_recv) = mpsc::channel::<()>();
-    app.once_global("frontend_ready", move |_event| {
+
+    app.listen_global("frontend_ready", move |_event| {
         frontend_ready_send.send(()).unwrap();
     });
 
-    let listeners: RefCell<Vec<Box<Listener>>> = RefCell::new(Vec::new());
-
+    let listeners: Rc<RefCell<Vec<Arc<Listener>>>> = Rc::new(RefCell::new(Vec::new()));
     let mainloop = MainLoop::new().expect("Failed to create mainloop");
     let context = Context::new(&mainloop).expect("Failed to create context");
     let core = context.connect(None).expect("Failed to connect to remote");
-    let registry = core.get_registry().expect("Failed to get registry");
-    let event_source = mainloop.add_event(move || {
+    let registry = Rc::new(RefCell::new(
+        core.get_registry().expect("Failed to get registry"),
+    ));
+    let callback = {
+        let listeners = listeners.clone();
+        let registry = registry.clone();
+        let app = app.clone();
+        move || {
             let app = app.clone();
+            println!("Frontend 1 ready, adding listeners");
+            println!("{}", (*listeners).borrow().len());
             if let Ok(_) = frontend_ready_recv.recv() {
-                let listener = Box::new(registry
+                let listener = Arc::new(
+                    (*registry)
+                        .borrow()
+                        .add_listener_local()
+                        .global(move |global| {
+                            println!("New global : {:?}", global);
+                            send_object_debug_message(global, &app);
+                            match global.type_ {
+                                ObjectType::Node => {
+                                    handle_node(global, &app);
+                                }
+                                ObjectType::Port => {
+                                    handle_port(global, &app);
+                                }
+                                ObjectType::Link => {
+                                    handle_link(global, &app);
+                                }
+                                _ => {}
+                            }
+                        })
+                        .register(),
+                );
+                listeners.borrow_mut().push(listener);
+            }
+        }
+    };
+
+    let event_source = mainloop.add_event(callback);
+    event_source.signal();
+    mainloop.run();
+}
+
+// TODO: find out why it is broken
+fn pw_thread_main_broken(app: Arc<tauri::AppHandle>) {
+    let (frontend_ready_send, frontend_ready_recv) = pipewire::channel::channel::<()>();
+    app.listen_global("frontend_ready", move |_event| {
+        frontend_ready_send.send(()).unwrap();
+    });
+
+    let listeners: Rc<RefCell<Vec<Arc<Listener>>>> = Rc::new(RefCell::new(Vec::new()));
+    let mainloop = MainLoop::new().expect("Failed to create mainloop");
+    let context = Context::new(&mainloop).expect("Failed to create context");
+    let core = context.connect(None).expect("Failed to connect to remote");
+    let registry = Rc::new(RefCell::new(
+        core.get_registry().expect("Failed to get registry"),
+    ));
+    let callback = {
+        let listeners = listeners.clone();
+        let registry = registry.clone();
+        let app = app.clone();
+        move |_| {
+            let app = app.clone();
+            println!("Frontend 1 ready, adding listeners");
+            println!("{}", (*listeners).borrow().len());
+            let listener = Arc::new(
+                (*registry)
+                    .borrow()
                     .add_listener_local()
                     .global(move |global| {
                         println!("New global : {:?}", global);
@@ -265,13 +336,14 @@ fn pw_thread_main(app: Arc<tauri::AppHandle>) {
                             _ => {}
                         }
                     })
-                    .register());
-                listeners.borrow_mut().push(listener);
-                println!("listener registered");
-            }
-        });
-    event_source.signal();
+                    .register(),
+            );
+            listeners.borrow_mut().push(listener);
+        }
+    };
+    let receiver_1 = frontend_ready_recv.attach(&mainloop, callback);
     mainloop.run();
+    println!("{:p}", &receiver_1);
 }
 
 fn send_object_debug_message(global: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
