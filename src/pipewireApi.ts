@@ -5,16 +5,37 @@ import { PortPayload } from "../src-tauri/bindings/PortPayload";
 import { IdPayload } from "../src-tauri/bindings/IdPayload";
 import { emit, listen } from "@tauri-apps/api/event";
 import { MessagePayload } from "../src-tauri/bindings/MessagePayload";
+import { prototype } from "events";
 
 export interface Removable {
-  removed: boolean;
+  exists: boolean;
 }
+
+export type Node = NodePayload &
+  Removable & {
+    type: "node";
+  };
+
+export type Link = LinkPayload &
+  Removable & {
+    type: "link";
+    input_port_serial: number;
+    output_port_serial: number;
+    input_node_serial: number;
+    output_node_serial: number;
+  };
+
+export type Port = PortPayload &
+  Removable & {
+    type: "port";
+    node_serial: number;
+  };
 
 export type PipewireState = {
   debugMessages: string[];
-  nodes: (NodePayload & Removable)[];
-  links: (LinkPayload & Removable)[];
-  ports: (PortPayload & Removable)[];
+  nodes: Node[];
+  links: Link[];
+  ports: Port[];
 };
 
 export const pipewireApi = createApi({
@@ -51,9 +72,20 @@ export const pipewireApi = createApi({
         const unlistenAddNode = listen<NodePayload>("add_node", (event) => {
           if (isSubscribed) {
             updateCachedData((data) => {
+              // there shouldn't be two non-removed nodes with the same id
+              let node = data.nodes.find(
+                (node) => node.id === event.payload.id && node.exists
+              );
+              if (node !== undefined) {
+                console.error(
+                  `node with id ${event.payload.id} already exists`
+                );
+                return;
+              }
               data.nodes.push({
                 ...event.payload,
-                removed: false,
+                type: "node",
+                exists: true,
               });
             });
           }
@@ -61,9 +93,54 @@ export const pipewireApi = createApi({
         const unlistenAddLink = listen<LinkPayload>("add_link", (event) => {
           if (isSubscribed) {
             updateCachedData((data) => {
+              let input_port = data.ports.find(
+                  (port) =>
+                    port.id === event.payload.input_port_id && port.exists
+                ),
+                output_port = data.ports.find(
+                  (port) =>
+                    port.id === event.payload.output_port_id && port.exists
+                ),
+                input_node = data.nodes.find(
+                  (node) =>
+                    node.id === event.payload.input_node_id && node.exists
+                ),
+                output_node = data.nodes.find(
+                  (node) =>
+                    node.id === event.payload.output_node_id && node.exists
+                );
+              if (input_port === undefined) {
+                console.error(
+                  `input port with id ${event.payload.input_port_id} does not exist`
+                );
+                return;
+              }
+              if (output_port === undefined) {
+                console.error(
+                  `output port with id ${event.payload.output_port_id} does not exist`
+                );
+                return;
+              }
+              if (input_node === undefined) {
+                console.error(
+                  `input node with id ${event.payload.input_node_id} does not exist`
+                );
+                return;
+              }
+              if (output_node === undefined) {
+                console.error(
+                  `output node with id ${event.payload.output_node_id} does not exist`
+                );
+                return;
+              }
               data.links.push({
                 ...event.payload,
-                removed: false,
+                type: "link",
+                exists: true,
+                input_port_serial: input_port.serial,
+                output_port_serial: output_port.serial,
+                input_node_serial: input_node.serial,
+                output_node_serial: output_node.serial,
               });
             });
           }
@@ -71,9 +148,29 @@ export const pipewireApi = createApi({
         const unlistenAddPort = listen<PortPayload>("add_port", (event) => {
           if (isSubscribed) {
             updateCachedData((data) => {
+              // there shouldn't be two non-removed ports with the same id
+              let port = data.ports.find(
+                (port) => port.id === event.payload.id && port.exists
+              );
+              if (port !== undefined) {
+                console.error(
+                  `port with id ${event.payload.id} already exists`
+                );
+                return;
+              }
+              let node_id = event.payload.node_id;
+              let node = data.nodes.find(
+                (node) => node.id === node_id && node.exists
+              );
+              if (node === undefined) {
+                console.error(`node with id ${node_id} does not exist`);
+                return;
+              }
               data.ports.push({
                 ...event.payload,
-                removed: false,
+                type: "port",
+                exists: true,
+                node_serial: node.serial,
               });
             });
           }
@@ -85,7 +182,7 @@ export const pipewireApi = createApi({
                 if (node.id === event.payload.id) {
                   return {
                     ...node,
-                    removed: true,
+                    exists: false,
                   };
                 }
                 return node;
@@ -94,7 +191,7 @@ export const pipewireApi = createApi({
                 if (link.id === event.payload.id) {
                   return {
                     ...link,
-                    removed: true,
+                    exists: false,
                   };
                 }
                 return link;
@@ -103,7 +200,7 @@ export const pipewireApi = createApi({
                 if (port.id === event.payload.id) {
                   return {
                     ...port,
-                    removed: true,
+                    exists: false,
                   };
                 }
                 return port;

@@ -32,7 +32,10 @@ import { ForceGraph2D } from "react-force-graph";
 import {
   PipewireState,
   useGetPipewireStateQuery,
-  Removable,
+  Port,
+  Node,
+  Link,
+  Removable
 } from "./pipewireApi";
 import { prototype } from "stream";
 
@@ -94,18 +97,18 @@ function pipewireRenderStateReducer(
     portDerivedCanvasLinks: syncArray(
       state.portDerivedCanvasLinks,
       action.payload.ports,
-      (port: PortPayload & Removable) => {
+      (port: Port) => {
         if (port.direction === "in") {
           return {
-            source: port.id,
-            target: port.node_id,
-            removed: port.removed,
+            source: port.serial,
+            target: port.node_serial,
+            exists: port.exists,
           };
         } else {
           return {
-            source: port.node_id,
-            target: port.id,
-            removed: port.removed,
+            source: port.node_serial,
+            target: port.serial,
+            exists: port.exists,
           };
         }
       }
@@ -113,19 +116,43 @@ function pipewireRenderStateReducer(
     linkDerivedCanvasLinks: syncArray(
       state.linkDerivedCanvasLinks,
       action.payload.links,
-      (link: LinkPayload & Removable) => {
+      (link: Link) => {
         return {
-          source: link.output_port_id,
-          target: link.input_port_id,
-          removed: link.removed,
+          source: link.output_port_serial,
+          target: link.input_port_serial,
+          exists: link.exists,
         };
       }
     ),
   };
 }
 
+function getWindowDimensions() {
+  const { innerWidth: width, innerHeight: height } = window;
+  return {
+    width,
+    height
+  };
+}
+
+function useWindowDimensions() {
+  const [windowDimensions, setWindowDimensions] = useState(getWindowDimensions());
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowDimensions(getWindowDimensions());
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return windowDimensions;
+}
+
 function App() {
   const { data, error, isLoading } = useGetPipewireStateQuery();
+  const { height, width } = useWindowDimensions();
   // we need to make our own copy of the data because
   // 1. We need to keep some references stable to eliminate unwanted d3.js re-renders of the canvas
   // 2. the query hook returns inextensible objects that are unuseable for the graph
@@ -144,20 +171,14 @@ function App() {
   }, [data, error, isLoading]);
   const nodes = useMemo(() => {
     return [
-      ...pipewireRenderState.nodes.filter((x) => !x.removed),
-      ...pipewireRenderState.ports.filter((x) => !x.removed),
+      ...pipewireRenderState.nodes,
+      ...pipewireRenderState.ports,
     ];
   }, [pipewireRenderState.nodes, pipewireRenderState.ports]);
   const links = useMemo(() => {
-  const portDerivedCanvasLinks = pipewireRenderState.portDerivedCanvasLinks.filter(
-    (x) => !x.removed
-  );
-  const linkDerivedCanvasLinks = pipewireRenderState.linkDerivedCanvasLinks.filter(
-    (x) => !x.removed
-  );
     return [
-      ...portDerivedCanvasLinks,
-      ...linkDerivedCanvasLinks
+      ...pipewireRenderState.portDerivedCanvasLinks,
+      ...pipewireRenderState.linkDerivedCanvasLinks
     ];
   }, [pipewireRenderState.portDerivedCanvasLinks, pipewireRenderState.linkDerivedCanvasLinks]);
   return (
@@ -166,12 +187,18 @@ function App() {
         <p>Loading...</p>
       ) : (
         <ForceGraph2D
+          height={height}
+          width={width}
           graphData={{
             nodes,
             links,
           }}
+          nodeVisibility="exists"
+          linkVisibility="exists"
+          nodeId="serial"
+          nodeAutoColorBy="type"
           nodeCanvasObject={(node, ctx, globalScale) => {
-            const label = `${node.id}`;
+            const label = `${(node as any).serial}`;
             const fontSize = 8 / globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
             const textWidth = ctx.measureText(label).width;
@@ -186,12 +213,10 @@ function App() {
               (node as any).y - bckgDimensions[1] / 2,
               ...bckgDimensions
             );
-
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillStyle = "black";
+            ctx.fillStyle = (node as any).color;
             ctx.fillText(label, (node as any).x, (node as any).y);
-
             (node as any).__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
           }}
           nodePointerAreaPaint={(node, color, ctx) => {
