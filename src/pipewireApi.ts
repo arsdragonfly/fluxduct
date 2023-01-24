@@ -32,6 +32,7 @@ export const pipewireApi = createApi({
                 _arg,
                 { updateCachedData, cacheDataLoaded, cacheEntryRemoved }
             ) {
+                // data need to be append-only so that memoizing deep copy works
                 let isSubscribed = true;
                 const unlistenDebugMessage = listen<MessagePayload>('debug_message', event => {
                     if (isSubscribed) {

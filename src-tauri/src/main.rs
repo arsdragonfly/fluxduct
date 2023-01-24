@@ -64,6 +64,12 @@ struct PortPayload {
     direction: Option<String>,
 }
 
+#[derive(Clone, serde::Serialize, ts_rs::TS)]
+#[ts(export)]
+struct IdPayload {
+    id: u32,
+}
+
 fn node_payload(node: &GlobalObject<ForeignDict>) -> NodePayload {
     let node_props = node.props.as_ref().expect("Node has no properties");
     NodePayload {
@@ -168,6 +174,12 @@ impl Payload for PortPayload {
     }
 }
 
+impl Payload for IdPayload {
+    fn type_name(&self) -> String {
+        "id".to_owned()
+    }
+}
+
 trait TauriEvent {
     // an event that can be emitted to Tauri frontend
     type Payload;
@@ -211,9 +223,24 @@ impl<T: Payload> TauriEvent for AddEvent<T> {
     }
 }
 
+struct RemoveEvent<T> {
+    payload: T,
+}
+
+impl<T: Payload> TauriEvent for RemoveEvent<T> {
+    type Payload = T;
+    fn event_name(&self) -> String {
+        format!("remove_{}", self.payload.type_name())
+    }
+
+    fn event_payload(&self) -> Self::Payload {
+        self.payload.clone()
+    }
+}
+
 use pipewire::{
     registry::{GlobalObject, Listener, Registry},
-    spa::{ForeignDict, ReadableDict},
+    spa::{utils::Id, ForeignDict, ReadableDict},
     sys::pw_main_loop_get_loop,
     types::ObjectType,
     Context, Loop, MainLoop, MainLoopInner,
@@ -253,45 +280,43 @@ fn pw_thread_main(app: Arc<tauri::AppHandle>) {
     let registry = Rc::new(RefCell::new(
         core.get_registry().expect("Failed to get registry"),
     ));
-    let callback = {
-        let listeners = listeners.clone();
-        let registry = registry.clone();
-        let app = app.clone();
-        move || {
-            let app = app.clone();
-            println!("Frontend 1 ready, adding listeners");
-            println!("{}", (*listeners).borrow().len());
-            if let Ok(_) = frontend_ready_recv.recv() {
-                let listener = Arc::new(
-                    (*registry)
-                        .borrow()
-                        .add_listener_local()
-                        .global(move |global| {
-                            println!("New global : {:?}", global);
-                            send_object_debug_message(global, &app);
-                            match global.type_ {
-                                ObjectType::Node => {
-                                    handle_node(global, &app);
-                                }
-                                ObjectType::Port => {
-                                    handle_port(global, &app);
-                                }
-                                ObjectType::Link => {
-                                    handle_link(global, &app);
-                                }
-                                _ => {}
-                            }
-                        })
-                        .register(),
-                );
-                listeners.borrow_mut().push(listener);
-            }
-        }
-    };
-
-    let event_source = mainloop.add_event(callback);
-    event_source.signal();
-    mainloop.run();
+    let listener = Arc::new(
+        (*registry)
+            .borrow()
+            .add_listener_local()
+            .global({
+                let app = app.clone();
+                move |global| {
+                    println!("New global : {:?}", global);
+                    send_object_debug_message(global, &app);
+                    match global.type_ {
+                        ObjectType::Node => {
+                            handle_node(global, &app);
+                        }
+                        ObjectType::Port => {
+                            handle_port(global, &app);
+                        }
+                        ObjectType::Link => {
+                            handle_link(global, &app);
+                        }
+                        _ => {}
+                    }
+                }
+            })
+            .global_remove({
+                let app = app.clone();
+                move |id| {
+                    println!("Global removed : {}", id);
+                    send_string_debug_message(format!("Global removed : {}", id), &app);
+                    handle_remove(id, &app);
+                }
+            })
+            .register(),
+    );
+    listeners.borrow_mut().push(listener);
+    if let Ok(_) = frontend_ready_recv.recv() {
+        mainloop.run();
+    }
 }
 
 // TODO: find out why it is broken
@@ -346,6 +371,13 @@ fn pw_thread_main_broken(app: Arc<tauri::AppHandle>) {
     println!("{:p}", &receiver_1);
 }
 
+fn send_string_debug_message(message: String, app: &tauri::AppHandle) {
+    let debug_message_event = DebugMessageEvent {
+        payload: MessagePayload { message },
+    };
+    debug_message_event.emit_all(app).unwrap()
+}
+
 fn send_object_debug_message(global: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
     let debug_message_event = DebugMessageEvent {
         payload: MessagePayload {
@@ -374,4 +406,11 @@ fn handle_port(port: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
         payload: port_payload(port),
     };
     add_event.emit_all(app).unwrap()
+}
+
+fn handle_remove(id: u32, app: &tauri::AppHandle) {
+    let remove_event = RemoveEvent {
+        payload: IdPayload { id },
+    };
+    remove_event.emit_all(app).unwrap()
 }
