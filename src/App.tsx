@@ -28,9 +28,12 @@ import { MessagePayload } from "../src-tauri/bindings/MessagePayload";
 import { NodePayload } from "../src-tauri/bindings/NodePayload";
 import { LinkPayload } from "../src-tauri/bindings/LinkPayload";
 import { PortPayload } from "../src-tauri/bindings/PortPayload";
-import util from "util";
 import { ForceGraph2D } from "react-force-graph";
-import { PipewireState, useGetPipewireStateQuery } from "./pipewireApi";
+import {
+  PipewireState,
+  useGetPipewireStateQuery,
+  Removable,
+} from "./pipewireApi";
 import { prototype } from "stream";
 
 type ArrayElement<ArrayType extends readonly unknown[]> =
@@ -44,8 +47,8 @@ type LinkObject = ArrayElement<
 >;
 
 type PipewireRenderState = PipewireState & {
-  portDerivedCanvasLinks: LinkObject[];
-  linkDerivedCanvasLinks: LinkObject[];
+  portDerivedCanvasLinks: (LinkObject & Removable)[];
+  linkDerivedCanvasLinks: (LinkObject & Removable)[];
 };
 
 const initialPipewireRenderState: PipewireRenderState = {
@@ -91,16 +94,18 @@ function pipewireRenderStateReducer(
     portDerivedCanvasLinks: syncArray(
       state.portDerivedCanvasLinks,
       action.payload.ports,
-      (port: PortPayload) => {
+      (port: PortPayload & Removable) => {
         if (port.direction === "in") {
           return {
             source: port.id,
             target: port.node_id,
+            removed: port.removed,
           };
         } else {
           return {
             source: port.node_id,
             target: port.id,
+            removed: port.removed,
           };
         }
       }
@@ -108,10 +113,11 @@ function pipewireRenderStateReducer(
     linkDerivedCanvasLinks: syncArray(
       state.linkDerivedCanvasLinks,
       action.payload.links,
-      (link: LinkPayload) => {
+      (link: LinkPayload & Removable) => {
         return {
           source: link.output_port_id,
           target: link.input_port_id,
+          removed: link.removed,
         };
       }
     ),
@@ -136,6 +142,24 @@ function App() {
       });
     }
   }, [data, error, isLoading]);
+  const nodes = useMemo(() => {
+    return [
+      ...pipewireRenderState.nodes.filter((x) => !x.removed),
+      ...pipewireRenderState.ports.filter((x) => !x.removed),
+    ];
+  }, [pipewireRenderState.nodes, pipewireRenderState.ports]);
+  const links = useMemo(() => {
+  const portDerivedCanvasLinks = pipewireRenderState.portDerivedCanvasLinks.filter(
+    (x) => !x.removed
+  );
+  const linkDerivedCanvasLinks = pipewireRenderState.linkDerivedCanvasLinks.filter(
+    (x) => !x.removed
+  );
+    return [
+      ...portDerivedCanvasLinks,
+      ...linkDerivedCanvasLinks
+    ];
+  }, [pipewireRenderState.portDerivedCanvasLinks, pipewireRenderState.linkDerivedCanvasLinks]);
   return (
     <div className="App">
       {isLoading || error ? (
@@ -143,8 +167,45 @@ function App() {
       ) : (
         <ForceGraph2D
           graphData={{
-            nodes: [...pipewireRenderState.nodes, ...pipewireRenderState.ports],
-            links: [...pipewireRenderState.portDerivedCanvasLinks, ...pipewireRenderState.linkDerivedCanvasLinks],
+            nodes,
+            links,
+          }}
+          nodeCanvasObject={(node, ctx, globalScale) => {
+            const label = `${node.id}`;
+            const fontSize = 8 / globalScale;
+            ctx.font = `${fontSize}px Sans-Serif`;
+            const textWidth = ctx.measureText(label).width;
+            const bckgDimensions: [number, number] = [
+              textWidth + fontSize * 0.2,
+              fontSize + fontSize * 0.2,
+            ]; // some padding
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+            ctx.fillRect(
+              (node as any).x - bckgDimensions[0] / 2,
+              (node as any).y - bckgDimensions[1] / 2,
+              ...bckgDimensions
+            );
+
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "black";
+            ctx.fillText(label, (node as any).x, (node as any).y);
+
+            (node as any).__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
+          }}
+          nodePointerAreaPaint={(node, color, ctx) => {
+            ctx.fillStyle = color;
+            const bckgDimensions = (node as any).__bckgDimensions as [
+              number,
+              number
+            ];
+            if (!bckgDimensions) return;
+            ctx.fillRect(
+              (node as any).x - bckgDimensions[0] / 2,
+              (node as any).y - bckgDimensions[1] / 2,
+              ...bckgDimensions
+            );
           }}
         />
       )}
