@@ -21,7 +21,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-import { useEffect, useMemo, useReducer, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import "./App.css";
 import { emit, listen } from "@tauri-apps/api/event";
 import { MessagePayload } from "../src-tauri/bindings/MessagePayload";
@@ -160,6 +160,24 @@ function App() {
     pipewireRenderStateReducer,
     initialPipewireRenderState
   );
+  const fgRef = useRef();
+  const [fgRefIsSet, setFgRefIsSet] = useState(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!fgRefIsSet && fgRef.current) {
+      setFgRefIsSet(true);
+    }
+  })
+  useEffect(() => {
+    if (fgRefIsSet) {
+      let ref = fgRef as React.ComponentPropsWithRef<typeof ForceGraph2D>["ref"];
+      // disable charge force calculation for nodes that don't exist
+      ref?.current?.d3Force("charge")?.strength((node: Node) => {
+        console.error(node.exists)
+        return node.exists ? -30 : 0;
+      });
+    }
+  }, [fgRefIsSet])
   useEffect(() => {
     // a memoizing deep copy of data
     if (!isLoading && !error && data) {
@@ -187,6 +205,7 @@ function App() {
         <p>Loading...</p>
       ) : (
         <ForceGraph2D
+          ref={fgRef}
           height={height}
           width={width}
           graphData={{
