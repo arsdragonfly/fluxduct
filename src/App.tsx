@@ -255,6 +255,7 @@ function App() {
               ...bckgDimensions
             );
           }}
+          linkDirectionalParticles={4}
         />
       )}
       {/* {isLoading || error ? (
