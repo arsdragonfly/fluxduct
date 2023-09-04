@@ -15,7 +15,7 @@
     "@types/react-dom": "^18.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-force-graph": "^1.41.18",
+    "react-force-graph-2d": "file:react-force-graph/src/packages/react-force-graph-2d",
     "react-redux": "^8.0.5",
     "react-scripts": "5.0.1",
     "typescript": "^4.6.4",

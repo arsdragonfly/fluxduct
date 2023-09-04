@@ -28,7 +28,7 @@ import { MessagePayload } from "../src-tauri/bindings/MessagePayload";
 import { NodePayload } from "../src-tauri/bindings/NodePayload";
 import { LinkPayload } from "../src-tauri/bindings/LinkPayload";
 import { PortPayload } from "../src-tauri/bindings/PortPayload";
-import { ForceGraph2D } from "react-force-graph";
+import ForceGraph2D from "react-force-graph-2d";
 import {
   PipewireState,
   useGetPipewireStateQuery,
