@@ -1,0 +1,4 @@
+[submodule "react-force-graph"]
+	path = react-force-graph
+	url = git@github.com:arsdragonfly/react-force-graph.git
+	branch = working
