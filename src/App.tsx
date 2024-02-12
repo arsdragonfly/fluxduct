@@ -219,9 +219,10 @@ function App() {
           nodeVisibility="exists"
           linkVisibility="exists"
           nodeId="serial"
+          nodeLabel="serial"
           nodeAutoColorBy="type"
           nodeCanvasObject={(node, ctx, globalScale) => {
-            const label = `${(node as any).serial}`;
+            const label = `${(node as any).name}`;
             const fontSize = 8 / globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
             const textWidth = ctx.measureText(label).width;
