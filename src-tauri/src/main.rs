@@ -70,7 +70,7 @@ struct IdPayload {
     id: u32,
 }
 
-fn node_payload(node: &GlobalObject<ForeignDict>) -> NodePayload {
+fn node_payload(node: &GlobalObject<&DictRef>) -> NodePayload {
     let node_props = node.props.as_ref().expect("Node has no properties");
     NodePayload {
         id: node.id,
@@ -86,7 +86,7 @@ fn node_payload(node: &GlobalObject<ForeignDict>) -> NodePayload {
     }
 }
 
-fn link_payload(link: &GlobalObject<ForeignDict>) -> LinkPayload {
+fn link_payload(link: &GlobalObject<&DictRef>) -> LinkPayload {
     let link_props = link.props.as_ref().expect("Link has no properties");
     LinkPayload {
         id: link.id,
@@ -123,7 +123,7 @@ fn link_payload(link: &GlobalObject<ForeignDict>) -> LinkPayload {
     }
 }
 
-fn port_payload(port: &GlobalObject<ForeignDict>) -> PortPayload {
+fn port_payload(port: &GlobalObject<&DictRef>) -> PortPayload {
     let port_props = port.props.as_ref().expect("Port has no properties");
     PortPayload {
         id: port.id,
@@ -239,16 +239,10 @@ impl<T: Payload> TauriEvent for RemoveEvent<T> {
 }
 
 use pipewire::{
-    registry::{GlobalObject, Listener, Registry},
-    spa::{utils::Id, ForeignDict, ReadableDict},
-    sys::pw_main_loop_get_loop,
-    types::ObjectType,
-    Context, Loop, MainLoop, MainLoopInner,
+    context::Context, main_loop::MainLoop, registry::{GlobalObject, Listener}, spa::utils::dict::DictRef, types::ObjectType
 };
 use std::{
-    borrow::Borrow,
     cell::RefCell,
-    ops::Deref,
     rc::Rc,
     sync::{mpsc, Arc},
 };
@@ -274,7 +268,7 @@ fn pw_thread_main(app: Arc<tauri::AppHandle>) {
     });
 
     let listeners: Rc<RefCell<Vec<Arc<Listener>>>> = Rc::new(RefCell::new(Vec::new()));
-    let mainloop = MainLoop::new().expect("Failed to create mainloop");
+    let mainloop = MainLoop::new(None).expect("Failed to create mainloop");
     let context = Context::new(&mainloop).expect("Failed to create context");
     let core = context.connect(None).expect("Failed to connect to remote");
     let registry = Rc::new(RefCell::new(
@@ -327,7 +321,7 @@ fn pw_thread_main_broken(app: Arc<tauri::AppHandle>) {
     });
 
     let listeners: Rc<RefCell<Vec<Arc<Listener>>>> = Rc::new(RefCell::new(Vec::new()));
-    let mainloop = MainLoop::new().expect("Failed to create mainloop");
+    let mainloop = MainLoop::new(None).expect("Failed to create mainloop");
     let context = Context::new(&mainloop).expect("Failed to create context");
     let core = context.connect(None).expect("Failed to connect to remote");
     let registry = Rc::new(RefCell::new(
@@ -366,7 +360,7 @@ fn pw_thread_main_broken(app: Arc<tauri::AppHandle>) {
             listeners.borrow_mut().push(listener);
         }
     };
-    let receiver_1 = frontend_ready_recv.attach(&mainloop, callback);
+    let receiver_1 = frontend_ready_recv.attach(&mainloop.loop_(), callback);
     mainloop.run();
     println!("{:p}", &receiver_1);
 }
@@ -378,7 +372,7 @@ fn send_string_debug_message(message: String, app: &tauri::AppHandle) {
     debug_message_event.emit_all(app).unwrap()
 }
 
-fn send_object_debug_message(global: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
+fn send_object_debug_message(global: &GlobalObject<&DictRef>, app: &tauri::AppHandle) {
     let debug_message_event = DebugMessageEvent {
         payload: MessagePayload {
             message: format!("New global : {:?}", global),
@@ -387,21 +381,21 @@ fn send_object_debug_message(global: &GlobalObject<ForeignDict>, app: &tauri::Ap
     debug_message_event.emit_all(app).unwrap()
 }
 
-fn handle_node(node: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
+fn handle_node(node: &GlobalObject<&DictRef>, app: &tauri::AppHandle) {
     let add_event = AddEvent {
         payload: node_payload(node),
     };
     add_event.emit_all(app).unwrap()
 }
 
-fn handle_link(link: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
+fn handle_link(link: &GlobalObject<&DictRef>, app: &tauri::AppHandle) {
     let add_event = AddEvent {
         payload: link_payload(link),
     };
     add_event.emit_all(app).unwrap()
 }
 
-fn handle_port(port: &GlobalObject<ForeignDict>, app: &tauri::AppHandle) {
+fn handle_port(port: &GlobalObject<&DictRef>, app: &tauri::AppHandle) {
     let add_event = AddEvent {
         payload: port_payload(port),
     };
