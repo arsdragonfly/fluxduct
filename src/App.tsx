@@ -173,12 +173,12 @@ function App() {
       let ref = fgRef as React.ComponentPropsWithRef<typeof ForceGraph2D>["ref"];
       // disable charge force calculation for nodes that don't exist
       ref?.current?.d3Force("charge")?.strength((node: Node) => {
-        return node.exists ? -30 : 0;
+        return node.exists ? -100 : 0;
       });
       // disable link force calculation for links that don't exist
       let oldLinkStrengthFunc = ref?.current?.d3Force("link")?.strength();
       ref?.current?.d3Force("link")?.strength((link: Link) => {
-        return link.exists ? oldLinkStrengthFunc(link) : 0;
+        return link.exists ? 0.5 * oldLinkStrengthFunc(link) : 0;
       })
     }
   }, [fgRefIsSet])
