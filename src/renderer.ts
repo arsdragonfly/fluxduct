@@ -29,3 +29,19 @@
 import './index.css';
 
 console.log('👋 This message is being logged by "renderer.js", included via webpack');
+
+async function initWebGPU() {
+    if (!navigator.gpu) {
+        console.error('WebGPU is not supported. Enable chrome://flags/#enable-unsafe-webgpu flag.');
+        return;
+    }
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+        console.error('Failed to get GPU adapter.');
+        return;
+    }
+    const device = await adapter.requestDevice();
+    console.log('WebGPU initialized successfully:', { adapter, device });
+}
+
+initWebGPU();
