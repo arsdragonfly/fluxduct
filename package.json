@@ -1,0 +1,30 @@
+{
+  "name": "fluxduct",
+  "version": "0.1.0",
+  "description": "Fluxduct is a dynamic PipeWire patchbay.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arsdragonfly/fluxduct.git"
+  },
+  "keywords": [
+    "pipewire",
+    "electron",
+    "react",
+    "neon",
+    "webgpu"
+  ],
+  "author": "arsdragonfly",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/arsdragonfly/fluxduct/issues"
+  },
+  "homepage": "https://github.com/arsdragonfly/fluxduct#readme",
+  "devDependencies": {
+    "electron": "^37.4.0"
+  }
+}
