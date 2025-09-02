@@ -23,3 +23,6 @@ yarn-debug.log*
 yarn-error.log*
 
 .webpack
+
+# packaging output
+/out
