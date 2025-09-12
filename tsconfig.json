@@ -1,21 +1,16 @@
 {
   "compilerOptions": {
-    "jsx": "react",
-    "target": "ES6",
+    "target": "es2024",
+    "module": "preserve",
     "allowJs": true,
-    "module": "commonjs",
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "jsx": "react",
     "noImplicitAny": true,
     "sourceMap": true,
     "baseUrl": ".",
     "outDir": "dist",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "paths": {
-      "*": ["node_modules/*"]
-    },
-    "types": ["@webgpu/types"]
-  },
-  "include": ["src/**/*"]
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true
+  }
 }
