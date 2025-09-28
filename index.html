@@ -1,13 +1,39 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
-
+    <title>Fluxduct</title>
   </head>
+
+  <style type="text/css" media="all">
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      overscroll-behavior-x: none;
+      overflow: hidden;
+    }
+    #use-gpu, #use-gpu .canvas {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+    }
+    .error-message {
+      background: rgba(255, 0, 0, .2);
+      color: #f99;
+      font-weight: bold;
+      padding: 40px;
+    }
+  </style>
+
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
-    <script type="module" src="/src/renderer.ts"></script>
+    <div id="use-gpu">
+      <div class="canvas"></div>
+    </div>
+    <script type="module" src="/src/Renderer.tsx"></script>
   </body>
 </html>
