@@ -1,4 +1,4 @@
-import React, { type LC, type PropsWithChildren, hot } from "@use-gpu/live";
+import React, { type LC, type PropsWithChildren, hot, useResource, useState } from "@use-gpu/live";
 import { makeFallback } from "./Fallback";
 import { HTML } from "@use-gpu/react";
 import { AutoCanvas, WebGPU } from "@use-gpu/webgpu";
@@ -18,6 +18,11 @@ import '@use-gpu/inspect/theme.css';
 export const App: LC = hot(() => {
   const root = document.querySelector("#use-gpu")!;
   const inner = document.querySelector("#use-gpu .canvas")!;
+  const [greeting, setGreeting] = useState<string>("…");
+
+  useResource(() => {
+    window.fluxduct?.hello("Use.GPU").then(setGreeting)
+  })
   return (
     <UseInspect container={root} provider={DebugProvider} extensions={[inspectGPU]}>
       <WebGPU
@@ -57,7 +62,7 @@ export const App: LC = hot(() => {
                             color="#ffffff"
                             opacity={0.5}
                           >
-                            Zoom Me
+                            {greeting}
                           </Text>
                         </Inline>
                       </Flex>

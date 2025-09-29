@@ -18,4 +18,15 @@ export default defineConfig({
     }),
     wgslRollup(),
   ],
+  optimizeDeps: {
+    exclude: ["fluxduct-rs"],
+  },
+  build: {
+    rollupOptions: {
+      external: ["fluxduct-rs"],
+    },
+    commonjsOptions: {
+      include: [/fluxduct-rs/, /node_modules/],
+    },
+  },
 });
