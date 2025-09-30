@@ -19,7 +19,7 @@ export default defineConfig({
     wgslRollup(),
   ],
   optimizeDeps: {
-    exclude: ["fluxduct-rs"],
+    include: ["fluxduct-rs"],
   },
   build: {
     rollupOptions: {

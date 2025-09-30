@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-import { hello } from 'fluxduct-rs';
+import { hello, helloId } from 'fluxduct-rs';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -39,8 +39,10 @@ app.commandLine.appendSwitch('enable-unsafe-webgpu');
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
   ipcMain.handle("fluxduct:hello", async (_event, name: string) => {
-    // Do anything privileged here (call Neon addon, touch filesystem, etc.)
     return hello(name);
+  });
+  ipcMain.handle("fluxduct:helloId", async (_event, id: number) => {
+    return helloId(id);
   });
   createWindow();
 });

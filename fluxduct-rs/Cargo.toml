@@ -10,6 +10,10 @@ crate-type = ["cdylib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+typeshare = "1.0.0"
+
 [dependencies.neon]
 version = "1.1"
-features = ["napi-8"]
+features = ["napi-8", "serde"]

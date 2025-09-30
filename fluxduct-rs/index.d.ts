@@ -1,5 +1,10 @@
+import { IdPayload } from "./typeshare";
+
+export * from "./typeshare";
+
 export interface FluxductBindings {
   hello(name: string): string;
+  helloId(id: number): IdPayload;
 }
 
 export type FluxductAsyncBindings = {
@@ -13,3 +18,4 @@ export type FluxductAsyncBindings = {
 declare const fluxduct: FluxductBindings;
 export default fluxduct;
 export declare const hello: typeof fluxduct.hello;
+export declare const helloId: typeof fluxduct.helloId;

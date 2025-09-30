@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 // https://vitejs.dev/config
 export default defineConfig({
   optimizeDeps: {
-    exclude: ["fluxduct-rs"],
+    include: ["fluxduct-rs"],
   },
   build: {
     rollupOptions: {

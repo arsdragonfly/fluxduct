@@ -61,7 +61,8 @@
     "vite": "^7.1.5",
     "vite-plugin-checker": "^0.10.3",
     "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0"
+    "vite-plugin-wasm": "^3.5.0",
+    "fluxduct-rs": "file:./fluxduct-rs"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1"
