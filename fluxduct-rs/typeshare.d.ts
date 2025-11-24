@@ -6,3 +6,35 @@ export interface IdPayload {
 	id: number;
 }
 
+export interface LinkPayload {
+	id: number;
+	serial: number;
+	input_port_id: number;
+	output_port_id: number;
+	input_node_id: number;
+	output_node_id: number;
+}
+
+export interface MessagePayload {
+	message: string;
+}
+
+export interface NodePayload {
+	id: number;
+	serial: number;
+	nick?: string;
+	name?: string;
+	description?: string;
+}
+
+export interface PortPayload {
+	id: number;
+	serial: number;
+	node_id: number;
+	secondary_id: number;
+	format_dsp?: string;
+	audio_channel?: string;
+	name?: string;
+	direction?: string;
+}
+

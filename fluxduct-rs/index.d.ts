@@ -1,21 +1,7 @@
-import { IdPayload } from "./typeshare";
+import { MessagePayload, NodePayload, LinkPayload, PortPayload, IdPayload } from "./typeshare";
 
 export * from "./typeshare";
 
-export interface FluxductBindings {
-  hello(name: string): string;
-  helloId(id: number): IdPayload;
-}
+export function init(callback: (event: string, payload: MessagePayload | NodePayload | LinkPayload | PortPayload | IdPayload) => void): void;
+export function hello(name: string): string;
 
-export type FluxductAsyncBindings = {
-  [K in keyof FluxductBindings]: FluxductBindings[K] extends (
-    ...args: infer P
-  ) => infer R
-    ? (...args: P) => Promise<Awaited<R>>
-    : FluxductBindings[K];
-};
-
-declare const fluxduct: FluxductBindings;
-export default fluxduct;
-export declare const hello: typeof fluxduct.hello;
-export declare const helloId: typeof fluxduct.helloId;

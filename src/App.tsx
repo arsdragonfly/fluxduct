@@ -21,8 +21,14 @@ export const App: LC = hot(() => {
   const [greeting, setGreeting] = useState<string>("…");
 
   useResource(() => {
-    window.fluxduct?.helloId(42).then(x => setGreeting(`${x.id}`))
-    // window.fluxduct?.hello("Use.GPU").then(x => setGreeting(`${x}`))
+    window.fluxduct?.hello("Use.GPU").then(x => setGreeting(`${x}`))
+    
+    window.fluxduct?.onEvent((event, payload) => {
+      console.log("Received event:", event, payload);
+      if (event === 'debug_message' && 'message' in payload) {
+         setGreeting(payload.message);
+      }
+    });
   })
   return (
     <UseInspect container={root} provider={DebugProvider} extensions={[inspectGPU]}>

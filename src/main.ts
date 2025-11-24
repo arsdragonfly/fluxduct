@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-import { hello, helloId } from 'fluxduct-rs';
+import { hello, init } from 'fluxduct-rs';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -41,10 +41,14 @@ app.on('ready', () => {
   ipcMain.handle("fluxduct:hello", async (_event, name: string) => {
     return hello(name);
   });
-  ipcMain.handle("fluxduct:helloId", async (_event, id: number) => {
-    return helloId(id);
-  });
+  
   createWindow();
+
+  init((event, payload) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('pipewire-event', { event, payload });
+    });
+  });
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
