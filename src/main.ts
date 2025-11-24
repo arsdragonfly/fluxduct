@@ -1,7 +1,6 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-import { hello, init } from 'fluxduct-rs';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -15,6 +14,8 @@ const createWindow = () => {
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: true,
+      contextIsolation: false,
     },
   });
 
@@ -38,21 +39,6 @@ app.commandLine.appendSwitch('enable-unsafe-webgpu');
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
-  ipcMain.handle("fluxduct:hello", async (_event, name: string) => {
-    return hello(name);
-  });
-
-  let initialized = false;
-  ipcMain.handle("fluxduct:init", async () => {
-    if (initialized) return;
-    initialized = true;
-    init((event, payload) => {
-      BrowserWindow.getAllWindows().forEach(win => {
-        win.webContents.send('pipewire-event', { event, payload });
-      });
-    });
-  });
-  
   createWindow();
 });
 
