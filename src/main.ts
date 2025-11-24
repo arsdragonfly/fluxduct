@@ -41,14 +41,19 @@ app.on('ready', () => {
   ipcMain.handle("fluxduct:hello", async (_event, name: string) => {
     return hello(name);
   });
-  
-  createWindow();
 
-  init((event, payload) => {
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('pipewire-event', { event, payload });
+  let initialized = false;
+  ipcMain.handle("fluxduct:init", async () => {
+    if (initialized) return;
+    initialized = true;
+    init((event, payload) => {
+      BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('pipewire-event', { event, payload });
+      });
     });
   });
+  
+  createWindow();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

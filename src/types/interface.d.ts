@@ -2,6 +2,7 @@ import type { MessagePayload, NodePayload, LinkPayload, PortPayload, IdPayload }
 
 export interface IFluxductAPI {
   hello(name: string): Promise<string>;
+  init(): Promise<void>;
   onEvent(callback: (event: string, payload: MessagePayload | NodePayload | LinkPayload | PortPayload | IdPayload) => void): void;
 }
 
