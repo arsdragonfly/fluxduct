@@ -2,33 +2,32 @@
   "name": "fluxduct-rs",
   "version": "0.1.0",
   "description": "Rust components of fluxduct.",
-  "main": "./index.cjs",
+  "type": "module",
+  "main": "./index.mjs",
   "types": "./index.d.ts",
   "exports": {
     ".": {
-      "import": "./index.mjs",
-      "require": "./index.cjs",
+      "types": "./index.d.ts",
       "default": "./index.mjs"
     }
   },
+  "napi": {
+    "name": "fluxduct-rs",
+    "triples": {}
+  },
   "files": [
-    "index.cjs",
     "index.mjs",
     "index.d.ts",
-    "index.node"
+    "*.node"
   ],
   "scripts": {
     "test": "cargo test",
-    "cargo-build": "cargo build --message-format=json-render-diagnostics > cargo.log",
-    "cross-build": "cross build --message-format=json-render-diagnostics > cross.log",
-    "postcargo-build": "neon dist < cargo.log && typeshare ./ --lang=typescript --output-file=typeshare.d.ts",
-    "postcross-build": "neon dist -m /target < cross.log && typeshare ./ --lang=typescript --output-file=typeshare.d.ts",
-    "debug": "npm run cargo-build --",
-    "build": "npm run cargo-build -- --release",
-    "cross": "npm run cross-build -- --release"
+    "build": "napi build --release",
+    "build:debug": "napi build",
+    "prepublishOnly": "napi prepublish -t npm"
   },
   "license": "MIT",
   "devDependencies": {
-    "@neon-rs/cli": "0.1.82"
+    "@napi-rs/cli": "^2"
   }
 }

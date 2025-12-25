@@ -21,10 +21,17 @@ export const App: LC = hot(() => {
   const [greeting, setGreeting] = useState<string>("…");
 
   useResource(() => {
-    window.fluxduct?.init((event, payload) => {
-      console.log("Received event:", event, payload);
-      if (event === 'debug_message' && 'message' in payload) {
-         setGreeting(payload.message);
+    window.fluxduct?.init((event) => {
+      console.log("Received event:", event.eventName, event.payload);
+      if (event.eventName === 'debug_message') {
+        try {
+          const payload = JSON.parse(event.payload);
+          if ('message' in payload) {
+            setGreeting(payload.message);
+          }
+        } catch (e) {
+          console.error("Failed to parse payload:", e);
+        }
       }
     });
     const x = window.fluxduct?.hello("Use.GPU");

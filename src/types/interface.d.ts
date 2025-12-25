@@ -1,12 +1,10 @@
-import type { MessagePayload, NodePayload, LinkPayload, PortPayload, IdPayload } from "fluxduct-rs";
-
-export interface IFluxductAPI {
-  hello(name: string): string;
-  init(callback: (event: string, payload: MessagePayload | NodePayload | LinkPayload | PortPayload | IdPayload) => void): void;
-}
+import type { EventWrapper } from "fluxduct-rs";
 
 declare global {
   interface Window {
-    fluxduct: IFluxductAPI
+    fluxduct: {
+      hello(name: string): string;
+      init(callback: (event: EventWrapper) => void): void;
+    }
   }
 }
