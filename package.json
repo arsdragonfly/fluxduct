@@ -5,7 +5,9 @@
   "description": "Fluxduct - dynamic PipeWire patchbay and plugin host",
   "main": ".vite/build/main.js",
   "scripts": {
-    "start": "electron-forge start",
+    "start": "screen -dmS fluxduct electron-forge start && sleep 2 && screen -r fluxduct",
+    "start:detached": "screen -dmS fluxduct electron-forge start",
+    "start:attach": "screen -r fluxduct",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
