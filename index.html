@@ -15,6 +15,9 @@
       overscroll-behavior-x: none;
       overflow: hidden;
     }
+    #react-root {
+      display: none;
+    }
     #use-gpu, #use-gpu .canvas {
       position: absolute;
       left: 0;
@@ -31,6 +34,7 @@
   </style>
 
   <body>
+    <div id="react-root"></div>
     <div id="use-gpu">
       <div class="canvas"></div>
     </div>

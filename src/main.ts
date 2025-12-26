@@ -1,11 +1,5 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
-import started from 'electron-squirrel-startup';
-
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (started) {
-  app.quit();
-}
 
 const createWindow = () => {
   // Create the browser window.
@@ -17,6 +11,12 @@ const createWindow = () => {
       nodeIntegration: true,
       contextIsolation: false,
     },
+  });
+
+  // Log renderer console messages to the terminal
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const levels = ['VERBOSE', 'INFO', 'WARNING', 'ERROR'];
+    console.log(`[Renderer ${levels[level] || level}] ${message} (${sourceId}:${line})`);
   });
 
   // and load the index.html of the app.

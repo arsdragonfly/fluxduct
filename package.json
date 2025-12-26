@@ -30,15 +30,14 @@
     "@electron-forge/maker-deb": "^7.9.0",
     "@electron-forge/maker-flatpak": "^7.9.0",
     "@electron-forge/maker-rpm": "^7.9.0",
-    "@electron-forge/maker-squirrel": "^7.9.0",
     "@electron-forge/maker-zip": "^7.9.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.9.0",
     "@electron-forge/plugin-fuses": "^7.9.0",
     "@electron-forge/plugin-vite": "^7.9.0",
     "@electron/fuses": "^1.8.0",
     "@nabla/vite-plugin-eslint": "^2.0.6",
-    "@types/electron-squirrel-startup": "^1.0.2",
     "@types/react": "^19.1.15",
+    "@types/react-dom": "^19.2.3",
     "@use-gpu/inspect": "^0.18.0",
     "@use-gpu/inspect-gpu": "^0.18.0",
     "@use-gpu/interact": "^0.18.0",
@@ -64,9 +63,8 @@
     "vite": "^7.1.5",
     "vite-plugin-checker": "^0.10.3",
     "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0"
-  },
-  "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "vite-plugin-wasm": "^3.5.0",
+    "@reduxjs/toolkit": "^2.11.2",
+    "react-redux": "^9.2.0"
   }
 }

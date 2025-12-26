@@ -21,12 +21,14 @@ use std::thread;
 static CALLBACK: OnceCell<Arc<ThreadsafeFunction<EventWrapper, ErrorStrategy::Fatal>>> = OnceCell::new();
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct MessagePayload {
     pub message: String,
 }
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct NodePayload {
     pub id: u32,
@@ -37,6 +39,7 @@ pub struct NodePayload {
 }
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct LinkPayload {
     pub id: u32,
@@ -48,6 +51,7 @@ pub struct LinkPayload {
 }
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct PortPayload {
     pub id: u32,
@@ -61,6 +65,7 @@ pub struct PortPayload {
 }
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct IdPayload {
     pub id: u32,
@@ -68,6 +73,7 @@ pub struct IdPayload {
 
 // Event wrapper for the callback - contains event name and JSON payload
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct EventWrapper {
     pub event_name: String,

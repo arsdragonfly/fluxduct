@@ -1,4 +1,5 @@
-import React, { type LC, type PropsWithChildren, hot, useResource, useState } from "@use-gpu/live";
+// Live components only - WebGPU rendering, receives data as props from React
+import React, { type LC, type PropsWithChildren } from "@use-gpu/live";
 import { makeFallback } from "./Fallback";
 import { HTML } from "@use-gpu/react";
 import { AutoCanvas, WebGPU } from "@use-gpu/webgpu";
@@ -15,28 +16,19 @@ import { UseInspect } from "@use-gpu/inspect";
 import { inspectGPU } from "@use-gpu/inspect-gpu";
 import '@use-gpu/inspect/theme.css';
 
-export const App: LC = hot(() => {
+import type { PipewireState } from "./store/pipewireApi";
+
+export interface LiveAppProps {
+  pipewireState: PipewireState | undefined;
+  isLoading: boolean;
+  statusText: string;
+}
+
+export const LiveApp: LC<LiveAppProps> = (props: LiveAppProps) => {
+  const { statusText } = props;
   const root = document.querySelector("#use-gpu")!;
   const inner = document.querySelector("#use-gpu .canvas")!;
-  const [greeting, setGreeting] = useState<string>("…");
 
-  useResource(() => {
-    window.fluxduct?.init((event) => {
-      console.log("Received event:", event.eventName, event.payload);
-      if (event.eventName === 'debug_message') {
-        try {
-          const payload = JSON.parse(event.payload);
-          if ('message' in payload) {
-            setGreeting(payload.message);
-          }
-        } catch (e) {
-          console.error("Failed to parse payload:", e);
-        }
-      }
-    });
-    const x = window.fluxduct?.hello("Use.GPU");
-    if (x) setGreeting(`${x}`);
-  })
   return (
     <UseInspect container={root} provider={DebugProvider} extensions={[inspectGPU]}>
       <WebGPU
@@ -47,14 +39,14 @@ export const App: LC = hot(() => {
         <AutoCanvas selector="#use-gpu .canvas" samples={4}>
           <FontLoader>
             <Camera>
-              <Pass>
+              <Pass picking={false}>
                 <UI>
                   <Layout>
                     <Flex width="100%" height="100%" align="center">
                       <Flex
-                        width={500}
-                        height={150}
-                        fill="#3090ff"
+                        width={600}
+                        height={200}
+                        fill="#1a1a2e"
                         align="center"
                         direction="y"
                       >
@@ -63,20 +55,29 @@ export const App: LC = hot(() => {
                             weight="black"
                             size={48}
                             lineHeight={64}
-                            color="#ffffff"
+                            color="#e94560"
                           >
-                            -~ Use.GPU ~-
+                            Fluxduct
                           </Text>
                         </Inline>
                         <Inline align="center">
                           <Text
-                            weight="black"
-                            size={16}
-                            lineHeight={64}
-                            color="#ffffff"
-                            opacity={0.5}
+                            weight="bold"
+                            size={18}
+                            lineHeight={32}
+                            color="#0f3460"
                           >
-                            {greeting}
+                            PipeWire Patchbay
+                          </Text>
+                        </Inline>
+                        <Inline align="center">
+                          <Text
+                            size={14}
+                            lineHeight={24}
+                            color="#16213e"
+                            opacity={0.8}
+                          >
+                            {statusText}
                           </Text>
                         </Inline>
                       </Flex>
@@ -90,7 +91,7 @@ export const App: LC = hot(() => {
       </WebGPU>
     </UseInspect>
   );
-}, import.meta);
+};
 
 // Wrap this in its own component to avoid JSX trashing of the view
 type CameraProps = PropsWithChildren<object>;
