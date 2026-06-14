@@ -1,14 +1,9 @@
-// Entry point - React renders the app with Redux, Live is embedded inside
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { ReactApp } from './ReactApp';
+// Entry point - Live owns the app root; fixed DOM chrome is managed from Live
+import React, { render } from '@use-gpu/live';
+import { LiveApp } from './LiveApp';
 
 function initApp() {
-  const container = document.getElementById('react-root');
-  if (container) {
-    const root = ReactDOM.createRoot(container);
-    root.render(<ReactApp />);
-  }
+  render(<LiveApp />);
 }
 
 // Handle case where DOM is already loaded (ES modules)

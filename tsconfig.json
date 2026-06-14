@@ -13,5 +13,6 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true
   },
-  "typings": ["src/types/*.d.ts"]
+  "typings": ["src/types/*.d.ts"],
+  "exclude": ["dist", "fluxduct-rs/target", "node_modules", "use.gpu"]
 }

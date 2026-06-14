@@ -32,8 +32,17 @@ const createWindow = () => {
   mainWindow.webContents.openDevTools();
 };
 
-// enable unsafe WebGPU on Linux
-app.commandLine.appendSwitch('enable-unsafe-webgpu');
+const chromiumSwitches: Array<[string, string?]> = [
+  ['enable-unsafe-webgpu'],
+  ['ozone-platform', 'x11'],
+  ['use-angle', 'vulkan'],
+  ['enable-features', 'Vulkan,VulkanFromANGLE,DefaultANGLEVulkan'],
+  ['use-webgpu-adapter', 'vulkan'],
+];
+
+for (const [name, value] of chromiumSwitches) {
+  app.commandLine.appendSwitch(name, value);
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

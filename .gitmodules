@@ -1,0 +1,4 @@
+[submodule "use.gpu"]
+	path = use.gpu
+	url = git@gitlab.com:arsdragonfly/use.gpu.git
+	branch = html-refactor

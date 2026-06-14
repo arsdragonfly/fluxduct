@@ -36,7 +36,7 @@
     "@electron-forge/plugin-vite": "^7.9.0",
     "@electron/fuses": "^1.8.0",
     "@nabla/vite-plugin-eslint": "^2.0.6",
-    "@types/react": "^19.1.15",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@use-gpu/inspect": "^0.18.0",
     "@use-gpu/inspect-gpu": "^0.18.0",
@@ -50,21 +50,23 @@
     "@use-gpu/webgpu": "^0.18.0",
     "@use-gpu/wgsl-loader": "^0.18.0",
     "@use-gpu/workbench": "^0.18.0",
-    "@vitejs/plugin-react": "^5.0.2",
+    "@vitejs/plugin-react": "^5.2.0",
     "electron": "38.1.0",
     "eslint": "^9.35.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "fluxduct-rs": "file:./fluxduct-rs",
-    "react": "^19.1.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0",
     "vite": "^7.1.5",
     "vite-plugin-checker": "^0.10.3",
     "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0",
-    "@reduxjs/toolkit": "^2.11.2",
-    "react-redux": "^9.2.0"
+    "vite-plugin-wasm": "^3.5.0"
+  },
+  "dependencies": {
+    "@tanstack/query-core": "^5.101.0"
   }
 }

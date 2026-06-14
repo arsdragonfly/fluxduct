@@ -15,15 +15,56 @@
       overscroll-behavior-x: none;
       overflow: hidden;
     }
-    #react-root {
-      display: none;
-    }
     #use-gpu, #use-gpu .canvas {
       position: absolute;
       left: 0;
       right: 0;
       top: 0;
       bottom: 0;
+    }
+    .fluxduct-chrome {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .fluxduct-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 240px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      background: rgba(10, 14, 24, 0.82);
+      color: #f4f7fb;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      pointer-events: auto;
+      user-select: none;
+    }
+    .fluxduct-panel strong {
+      display: block;
+      font-size: 18px;
+      line-height: 24px;
+    }
+    .fluxduct-status {
+      margin-top: 8px;
+      color: rgba(244, 247, 251, 0.78);
+      font-size: 12px;
+      line-height: 18px;
+    }
+    .fluxduct-tooltip {
+      position: fixed;
+      left: 0;
+      top: 0;
+      padding: 5px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+      background: rgba(8, 10, 16, 0.9);
+      color: #f4f7fb;
+      font: 12px/18px ui-sans-serif, system-ui, sans-serif;
+      pointer-events: none;
+      white-space: nowrap;
     }
     .error-message {
       background: rgba(255, 0, 0, .2);
@@ -34,7 +75,6 @@
   </style>
 
   <body>
-    <div id="react-root"></div>
     <div id="use-gpu">
       <div class="canvas"></div>
     </div>

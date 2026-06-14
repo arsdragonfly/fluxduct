@@ -1,39 +1,48 @@
-// Live components only - WebGPU rendering, receives data as props from React
-import React, { type LC, type PropsWithChildren } from "@use-gpu/live";
-import { makeFallback } from "./Fallback";
-import { HTML } from "@use-gpu/react";
+// Live-first app - WebGPU owns the root and fallback DOM is managed from Live
+import React, { type LC, type PropsWithChildren, useMemo, useResource } from "@use-gpu/live";
 import { AutoCanvas, WebGPU } from "@use-gpu/webgpu";
 import { PanControls } from "@use-gpu/interact";
 import {
-  DebugProvider,
   FontLoader,
   FlatCamera,
   Pass,
 } from "@use-gpu/workbench";
 import { UI, Layout, Flex, Inline, Text } from "@use-gpu/layout";
 
-import { UseInspect } from "@use-gpu/inspect";
-import { inspectGPU } from "@use-gpu/inspect-gpu";
-import '@use-gpu/inspect/theme.css';
+import { useGetPipewireStateQuery } from "./store";
 
-import type { PipewireState } from "./store/pipewireApi";
-
-export interface LiveAppProps {
-  pipewireState: PipewireState | undefined;
-  isLoading: boolean;
-  statusText: string;
-}
-
-export const LiveApp: LC<LiveAppProps> = (props: LiveAppProps) => {
-  const { statusText } = props;
+export const LiveApp: LC = () => {
+  const { data, isLoading, error } = useGetPipewireStateQuery();
   const root = document.querySelector("#use-gpu")!;
-  const inner = document.querySelector("#use-gpu .canvas")!;
+
+  const activeNodes = useMemo(
+    () => data.nodes.filter((node) => node.exists),
+    [data.nodes]
+  );
+  const activePorts = useMemo(
+    () => data.ports.filter((port) => port.exists),
+    [data.ports]
+  );
+  const activeLinks = useMemo(
+    () => data.links.filter((link) => link.exists),
+    [data.links]
+  );
+
+  const statusText = isLoading
+    ? "Connecting to PipeWire..."
+    : error
+      ? `Error: ${String(error)}`
+      : `Nodes: ${activeNodes.length} | Ports: ${activePorts.length} | Links: ${activeLinks.length}`;
 
   return (
-    <UseInspect container={root} provider={DebugProvider} extensions={[inspectGPU]}>
+    <>
+      <FixedChrome
+        container={root}
+        statusText={statusText}
+      />
       <WebGPU
         fallback={(error: Error) => (
-          <HTML container={inner}>{makeFallback(error)}</HTML>
+          <WebGPUFallback container={root} error={error} />
         )}
       >
         <AutoCanvas selector="#use-gpu .canvas" samples={4}>
@@ -45,7 +54,7 @@ export const LiveApp: LC<LiveAppProps> = (props: LiveAppProps) => {
                     <Flex width="100%" height="100%" align="center">
                       <Flex
                         width={600}
-                        height={200}
+                        height={160}
                         fill="#1a1a2e"
                         align="center"
                         direction="y"
@@ -70,16 +79,6 @@ export const LiveApp: LC<LiveAppProps> = (props: LiveAppProps) => {
                             PipeWire Patchbay
                           </Text>
                         </Inline>
-                        <Inline align="center">
-                          <Text
-                            size={14}
-                            lineHeight={24}
-                            color="#16213e"
-                            opacity={0.8}
-                          >
-                            {statusText}
-                          </Text>
-                        </Inline>
                       </Flex>
                     </Flex>
                   </Layout>
@@ -89,8 +88,82 @@ export const LiveApp: LC<LiveAppProps> = (props: LiveAppProps) => {
           </FontLoader>
         </AutoCanvas>
       </WebGPU>
-    </UseInspect>
+    </>
   );
+};
+
+interface FixedChromeProps {
+  container: Element;
+  statusText: string;
+}
+
+const FixedChrome: LC<FixedChromeProps> = ({ container, statusText }) => {
+  const chrome = useResource((dispose) => {
+    const wrapper = document.createElement("div");
+    const panel = document.createElement("aside");
+    const title = document.createElement("strong");
+    const status = document.createElement("div");
+    const tooltip = document.createElement("div");
+
+    wrapper.className = "fluxduct-chrome";
+    panel.className = "fluxduct-panel";
+    status.className = "fluxduct-status";
+    tooltip.className = "fluxduct-tooltip";
+    title.textContent = "Fluxduct";
+    tooltip.hidden = true;
+
+    panel.append(title, status);
+    wrapper.append(panel, tooltip);
+    container.appendChild(wrapper);
+
+    const handlePointerMove = (event: Event) => {
+      const pointer = event as PointerEvent;
+      tooltip.hidden = false;
+      tooltip.style.transform = `translate(${pointer.clientX + 16}px, ${pointer.clientY + 16}px)`;
+      tooltip.textContent = `x ${Math.round(pointer.clientX)} / y ${Math.round(pointer.clientY)}`;
+    };
+    const handlePointerLeave = () => {
+      tooltip.hidden = true;
+    };
+
+    container.addEventListener("pointermove", handlePointerMove);
+    container.addEventListener("pointerleave", handlePointerLeave);
+    dispose(() => {
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerleave", handlePointerLeave);
+      container.removeChild(wrapper);
+    });
+
+    return { status };
+  }, [container]);
+
+  useResource(() => {
+    chrome.status.textContent = statusText;
+  }, [chrome, statusText]);
+
+  return null;
+};
+
+interface WebGPUFallbackProps {
+  container: Element;
+  error: Error;
+}
+
+const WebGPUFallback: LC<WebGPUFallbackProps> = ({ container, error }) => {
+  const message = error.toString();
+
+  useResource((dispose) => {
+    const div = document.createElement("div");
+    div.className = "error-message";
+    div.textContent = message;
+    container.appendChild(div);
+
+    dispose(() => {
+      container.removeChild(div);
+    });
+  }, [container, message]);
+
+  return null;
 };
 
 // Wrap this in its own component to avoid JSX trashing of the view
@@ -98,7 +171,7 @@ type CameraProps = PropsWithChildren<object>;
 const Camera: LC<CameraProps> = (props: CameraProps) => (
   /* 2D pan controls + flat view */
   <PanControls>
-    {(x, y, zoom) => (
+    {(x: number, y: number, zoom: number) => (
       <FlatCamera x={x} y={y} zoom={zoom}>
         {props.children}
       </FlatCamera>
